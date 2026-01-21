@@ -1,0 +1,27 @@
+# nginx proxy address - http://172.17.0.1:8088
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "5m"
+    max-file: "1"
+
+services:
+  hastebin:
+    image: rlister/hastebin:latest
+    container_name: hastebin-app
+    restart: unless-stopped
+    logging: *default-logging
+    networks:
+      - hastebin
+    ports:
+      - "8088:7777"
+    environment:
+      TZ: ${TZ:-America/New_York}
+    volumes:
+      - ./rootfs/config/hastebin:/config
+      - ./rootfs/data/hastebin:/data
+
+networks:
+  hastebin:
+    external: false
