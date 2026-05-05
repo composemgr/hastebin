@@ -19,8 +19,8 @@ services:
     environment:
       TZ: ${TZ:-America/New_York}
     volumes:
-      - ./rootfs/config/hastebin:/config
-      - ./rootfs/data/hastebin:/data
+      - ./volumes/config/hastebin:/config
+      - ./volumes/data/hastebin:/data
 
 networks:
   hastebin:
