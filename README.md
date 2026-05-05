@@ -45,8 +45,8 @@ See `docker-compose.yaml` for complete list of configurable options.
 
 ## 📂 Volumes
 
-- `./rootfs/config/hastebin` - Data storage
-- `./rootfs/data/hastebin` - Data storage
+- `./volumes/config/hastebin` - Data storage
+- `./volumes/data/hastebin` - Data storage
 
 ## 🔍 Logging
 
