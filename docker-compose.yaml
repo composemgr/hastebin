@@ -1,5 +1,6 @@
-# nginx proxy address - http://172.17.0.1:8088
+# nginx proxy address - http://172.17.0.1:7777
 
+name: hastebin
 x-logging: &default-logging
   driver: json-file
   options:
@@ -7,21 +8,38 @@ x-logging: &default-logging
     max-file: "1"
 
 services:
-  hastebin:
-    image: rlister/hastebin:latest
+  app:
+    image: ghcr.io/toptal/haste-server:latest
+    pull_policy: always
     container_name: hastebin-app
-    restart: unless-stopped
+    restart: always
     logging: *default-logging
     networks:
       - hastebin
     ports:
-      - "8088:7777"
+      - "172.17.0.1:7777:7777"
     environment:
       TZ: ${TZ:-America/New_York}
+      STORAGE_TYPE: ${HASTEBIN_STORAGE:-redis}
+      STORAGE_HOST: hastebin-redis
+      STORAGE_PORT: 6379
+      STORAGE_DB: 2
+      STORAGE_EXPIRE_SECONDS: ${HASTEBIN_EXPIRE:-2592000}
+    depends_on:
+      - hastebin-redis
+
+  hastebin-redis:
+    image: redis:alpine
+    pull_policy: always
+    container_name: hastebin-redis
+    restart: always
+    logging: *default-logging
+    networks:
+      - hastebin
     volumes:
-      - ./volumes/config/hastebin:/config
-      - ./volumes/data/hastebin:/data
+      - ./volumes/data/redis/hastebin:/data
 
 networks:
   hastebin:
+    name: hastebin
     external: false
