@@ -16,6 +16,8 @@ services:
     logging: *default-logging
     networks:
       - hastebin
+      - proxy
+      - cloudflare
     ports:
       - "172.17.0.1:7777:7777"
     environment:
@@ -25,8 +27,26 @@ services:
       STORAGE_PORT: 6379
       STORAGE_DB: 2
       STORAGE_EXPIRE_SECONDS: ${HASTEBIN_EXPIRE:-2592000}
+      CONTAINER_NAME: hastebin-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
     depends_on:
       - hastebin-redis
+    labels:
+      - 'traefik.enable=true'
+      - 'cloudflare.enable=true'
+      - 'traefik.docker.network=proxy'
+      - 'cloudflare.service=http://hastebin-app:7777'
+      - 'cloudflare.hostname=hastebin.${CLOUDFLARE_ZONE_NAME:-}'
+      - 'traefik.http.routers.hastebin-app.entrypoints=http'
+      - 'traefik.http.routers.hastebin-app-secure.tls=true'
+      - 'traefik.http.routers.hastebin-app.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.middlewares.hastebin-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.hastebin-app.middlewares=hastebin-app-https-redirect'
+      - 'traefik.http.routers.hastebin-app-secure.entrypoints=https'
+      - 'traefik.http.routers.hastebin-app-secure.rule=Host($(${BASE_HOST_NAME:-$HOSTNAME}))'
+      - 'traefik.http.routers.hastebin-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.hastebin-app-secure.service=hastebin-app'
+      - 'traefik.http.services.hastebin-app.loadbalancer.server.port=7777'
 
   hastebin-redis:
     image: redis:alpine
@@ -38,8 +58,14 @@ services:
       - hastebin
     volumes:
       - ./volumes/data/redis/hastebin:/data
+    environment:
+      CONTAINER_NAME: hastebin-redis
 
 networks:
   hastebin:
     name: hastebin
     external: false
+  proxy:
+    external: true
+  cloudflare:
+    external: true
