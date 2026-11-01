@@ -1,0 +1,65 @@
+name: hastebin
+x-logging: &default-logging
+  options:
+    max-size: '5m'
+    max-file: '1'
+  driver: json-file
+
+services:
+  app:
+    image: rlister/hastebin:latest
+    container_name: hastebin-app
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: ${BASE_HOST_NAME:-$HOSTNAME}
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: hastebin-app
+      HOSTNAME: ${BASE_HOST_NAME:-$HOSTNAME}
+      STORAGE_TYPE: ${HASTEBIN_STORAGE:-redis}
+      STORAGE_HOST: hastebin-redis
+      STORAGE_PORT: 6379
+      STORAGE_DB: 2
+      STORAGE_EXPIRE_SECONDS: ${HASTEBIN_EXPIRE:-2592000}
+    depends_on:
+      - hastebin-redis
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.docker.network=traefik'
+      - 'traefik.http.routers.hastebin-app.entrypoints=http'
+      - 'traefik.http.routers.hastebin-app.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.middlewares.hastebin-app-https-redirect.redirectscheme.scheme=https'
+      - 'traefik.http.routers.hastebin-app.middlewares=hastebin-app-https-redirect'
+      - 'traefik.http.routers.hastebin-app-secure.entrypoints=https'
+      - 'traefik.http.routers.hastebin-app-secure.rule=Host(`${BASE_HOST_NAME:-$HOSTNAME}`)'
+      - 'traefik.http.routers.hastebin-app-secure.tls.certresolver=cloudflare'
+      - 'traefik.http.routers.hastebin-app-secure.service=hastebin-app'
+      - 'traefik.http.services.hastebin-app.loadbalancer.server.port=7777'
+    networks:
+      - hastebin
+      - traefik
+
+  hastebin-redis:
+    image: redis:alpine
+    container_name: hastebin-redis
+    domainname: ${BASE_DOMAIN_NAME:-example.com}
+    hostname: hastebin-redis
+    restart: always
+    pull_policy: always
+    logging: *default-logging
+    environment:
+      TZ: ${TZ:-America/New_York}
+      CONTAINER_NAME: hastebin-redis
+    volumes:
+      - './volumes/redis/hastebin:/data:z'
+    networks:
+      - hastebin
+
+networks:
+  hastebin:
+    name: hastebin
+    external: false
+  traefik:
+    external: true
