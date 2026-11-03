@@ -23,6 +23,12 @@ services:
       STORAGE_PORT: 6379
       STORAGE_DB: 2
       STORAGE_EXPIRE_SECONDS: ${HASTEBIN_EXPIRE:-2592000}
+    healthcheck:
+      test: ['CMD', 'nc', '-z', '127.0.0.1', '7777']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     depends_on:
       - hastebin-redis
     labels:
@@ -52,6 +58,12 @@ services:
     environment:
       TZ: ${TZ:-America/New_York}
       CONTAINER_NAME: hastebin-redis
+    healthcheck:
+      test: ['CMD-SHELL', 'redis-cli ping | grep -q PONG']
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
     volumes:
       - './volumes/redis/hastebin:/data:z'
     networks:
